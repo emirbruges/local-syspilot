@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Local SysPilot</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <h1>🖥️ Dashboard</h1>
+            <div class="header-info">
+                <span id="welcome-message"></span>
+                <button id="logout-button">Log Out</button>
+            </div>
+        </header>
+
+        <main class="controls-grid">
+            <div class="control-card">
+                <h2>🔌 Energy Control</h2>
+                <button class="action-button shutdown">Shutdown</button>
+                <button class="action-button restart">Reboot</button>
+                <button class="action-button lock">Block Session</button>
+            </div>
+
+            <div class="control-card">
+                <h2>🎛️ Multimedia Control </h2>
+                <button class="action-button">▶️ Play/Pause</button>
+                <div class="volume-control">
+                    <span>🔉</span>
+                    <input type="range" min="0" max="100" value="50">
+                    <span>🔊</span>
+                </div>
+            </div>
+            
+            <div class="control-card">
+                <h2>📊 System Metrics</h2>
+                <p><strong>CPU:</strong> <span id="cpu-usage">--</span>%</p>
+                <p><strong>RAM:</strong> <span id="ram-usage">--</span>%</p>
+                <p><strong>Uptime:</strong> <span id="uptime">--</span></p>
+            </div>
+        </main>
+    </div>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

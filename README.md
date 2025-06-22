@@ -24,8 +24,8 @@ With a clean web interface and secure login, it allows you to perform basic syst
 
 * [ ] Local system control via web (shutdown, lock)
 * [ ] Cross-platform backend (Python for Linux, C++ for Windows)
-* [ ] Secure login/token-based authentication
-* [ ] Basic Streamlit-based control panel
+* [x] Secure login/token-based authentication
+* [ ] Basic control panel
 * [ ] Optional system metrics module
 * [ ] Systemd/Windows Service installation helpers
 
