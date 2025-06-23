@@ -10,27 +10,25 @@ document.addEventListener('DOMContentLoaded', () => {
         errorMessage.textContent = '';
 
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/login', {
+            const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ username, password }),
+                credentials: 'include'
             });
 
             const data = await response.json();
 
-            if (data.success && data.token) {
-                // Si el login es exitoso y recibimos un token, lo guardamos
-                localStorage.setItem('syspilot_token', data.token);
-                // Y redirigimos al dashboard
-                window.location.href = 'dashboard.html';
+            if (data.success) {
+                window.location.href = '/dashboard';
             } else {
-                errorMessage.textContent = data.message || 'Login fallido. Inténtalo de nuevo.';
+                errorMessage.textContent = data.message || 'Login failed. Try again.';
             }
         } catch (error) {
-            console.error('Error de conexión con el servidor:', error);
-            errorMessage.textContent = 'No se puede conectar al servidor. ¿Está en ejecución?';
+            console.error('Server connection error:', error);
+            errorMessage.textContent = "Can't connect to server. Is it running ?";
         }
     });
 });

@@ -19,22 +19,26 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: var(--rose-pine-base); /* Base background */
+    background-color: var(--rose-pine-base);
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
     margin: 0;
-    color: var(--rose-pine-text); /* Default text color */
+    color: var(--rose-pine-text);
+    padding: 10px; /* para que no pegue en los bordes en móviles */
+    box-sizing: border-box;
 }
 
 .login-container {
-    background-color: var(--rose-pine-surface); /* Surface background */
-    padding: 40px;
+    background-color: var(--rose-pine-surface);
+    padding: 40px 30px;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2); /* Slightly darker shadow */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     width: 360px;
+    max-width: 100%;
     text-align: center;
+    box-sizing: border-box;
 }
 
 h1 {
@@ -44,7 +48,7 @@ h1 {
 }
 
 p {
-    color: var(--rose-pine-subtle); /* Muted text for descriptions */
+    color: var(--rose-pine-subtle);
     margin-bottom: 20px;
 }
 
@@ -64,18 +68,18 @@ input[type="text"],
 input[type="password"] {
     width: 100%;
     padding: 10px;
-    border: 1px solid var(--rose-pine-highlight-med); /* Border from a highlight color */
-    background-color: var(--rose-pine-overlay); /* Overlay for inputs */
+    border: 1px solid var(--rose-pine-highlight-med);
+    background-color: var(--rose-pine-overlay);
     color: var(--rose-pine-text);
     border-radius: 6px;
-    box-sizing: border-box; /* Important */
+    box-sizing: border-box;
 }
 
 button {
     width: 100%;
     padding: 12px;
-    background-color: var(--rose-pine-iris); /* Iris for primary buttons */
-    color: var(--rose-pine-base); /* Text on buttons will be base for contrast */
+    background-color: var(--rose-pine-iris);
+    color: var(--rose-pine-base);
     border: none;
     border-radius: 6px;
     font-size: 16px;
@@ -84,13 +88,13 @@ button {
 }
 
 button:hover {
-    background-color: #a788d8; /* A slightly darker iris on hover */
+    background-color: #a788d8;
 }
 
 .error-message {
-    color: var(--rose-pine-love); /* Love for error messages */
+    color: var(--rose-pine-love);
     margin-top: 15px;
-    min-height: 1em; /* Prevent layout shift */
+    min-height: 1em;
 }
 
 .dashboard-container {
@@ -102,13 +106,14 @@ button:hover {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     color: var(--rose-pine-text);
+    box-sizing: border-box;
 }
 
 .dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--rose-pine-highlight-med); /* Highlight for dividers */
+    border-bottom: 1px solid var(--rose-pine-highlight-med);
     padding-bottom: 15px;
     margin-bottom: 20px;
 }
@@ -119,24 +124,25 @@ button:hover {
 }
 
 #logout-button {
-    background-color: var(--rose-pine-love); /* Love for logout */
+    background-color: var(--rose-pine-love);
     color: var(--rose-pine-base);
 }
 #logout-button:hover {
-    background-color: #d85c80; /* A slightly darker love on hover */
+    background-color: #d85c80;
 }
 
 .controls-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* ajustado para móviles */
     gap: 20px;
 }
 
 .control-card {
-    background-color: var(--rose-pine-overlay); /* Overlay for cards */
-    border: 1px solid var(--rose-pine-highlight-low); /* Low highlight for card borders */
+    background-color: var(--rose-pine-overlay);
+    border: 1px solid var(--rose-pine-highlight-low);
     border-radius: 8px;
     padding: 20px;
+    box-sizing: border-box;
 }
 
 .control-card h2 {
@@ -155,21 +161,21 @@ button:hover {
     font-size: 1em;
     cursor: pointer;
     border-radius: 6px;
-    border: 1px solid var(--rose-pine-muted); /* Muted for general button borders */
-    background-color: var(--rose-pine-surface); /* Surface for action buttons */
+    border: 1px solid var(--rose-pine-muted);
+    background-color: var(--rose-pine-surface);
     color: var(--rose-pine-text);
 }
 .action-button:hover {
-    background-color: var(--rose-pine-highlight-low); /* Low highlight on hover */
+    background-color: var(--rose-pine-highlight-low);
     border-color: var(--rose-pine-subtle);
 }
 .action-button.shutdown {
-    background-color: var(--rose-pine-love); /* Love for shutdown button */
+    background-color: var(--rose-pine-love);
     border-color: var(--rose-pine-love);
-    color: var(--rose-pine-base); /* Text on love background */
+    color: var(--rose-pine-base);
 }
 .action-button.shutdown:hover {
-    background-color: #d85c80; /* Slightly darker love on hover */
+    background-color: #d85c80;
     border-color: #d85c80;
 }
 
@@ -180,10 +186,9 @@ button:hover {
 }
 .volume-control input[type="range"] {
     flex-grow: 1;
-    /* Style for range input (slider) - cross-browser compatibility often requires more prefixes */
     -webkit-appearance: none;
     appearance: none;
-    background: var(--rose-pine-highlight-med); /* Track color */
+    background: var(--rose-pine-highlight-med);
     border-radius: 5px;
     height: 8px;
 }
@@ -192,10 +197,10 @@ button:hover {
     appearance: none;
     width: 20px;
     height: 20px;
-    background: var(--rose-pine-pine); /* Pine for slider thumb */
+    background: var(--rose-pine-pine);
     border-radius: 50%;
     cursor: grab;
-    margin-top: -6px; /* Center thumb vertically */
+    margin-top: -6px;
 }
 .volume-control input[type="range"]::-moz-range-thumb {
     width: 20px;
@@ -203,4 +208,52 @@ button:hover {
     background: var(--rose-pine-pine);
     border-radius: 50%;
     cursor: grab;
+}
+
+/* ------------------------- */
+/* Media Queries para móviles */
+/* ------------------------- */
+@media (max-width: 600px) {
+    body {
+        height: auto; /* para que no quede forzado en altura en móvil */
+        padding: 15px;
+    }
+
+    .login-container {
+        padding: 30px 20px;
+        width: 100%; /* ocupa todo el ancho posible */
+    }
+
+    h1 {
+        font-size: 20px;
+    }
+
+    button {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .controls-grid {
+        grid-template-columns: 1fr; /* una columna para móviles */
+    }
+
+    .control-card {
+        padding: 15px;
+    }
+
+    .action-button {
+        font-size: 0.9em;
+        padding: 8px;
+    }
+
+    .volume-control {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }
