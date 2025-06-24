@@ -26,10 +26,11 @@
 
             <div class="control-card">
                 <h2>🎛️ Multimedia Control </h2>
-                <button class="action-button">▶️ Play/Pause</button>
+                <button class="action-button play-pause">▶️ Play/Pause</button>
                 <div class="volume-control">
                     <span>🔉</span>
-                    <input type="range" min="0" max="100" value="50">
+                    <input type="range" min="0" max="100" value="50" id="volume-slider">
+                    <span id="volume-percentage">50%</span>
                     <span>🔊</span>
                 </div>
             </div>
@@ -40,8 +41,94 @@
                 <p><strong>RAM:</strong> <span id="ram-usage">--</span>%</p>
                 <p><strong>Uptime:</strong> <span id="uptime">--</span></p>
             </div>
+
+            <!-- Nuevo Control Card para la Gestión de Usuarios -->
+            <div class="control-card" id="manage-users-card" style="display: none;">
+                <h2>👥 User Management</h2>
+                <button class="action-button" id="manage-users-button">Manage Users</button>
+            </div>
         </main>
     </div>
+
+    <!-- Modal de Gestión de Usuarios -->
+    <div id="user-management-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>User Management</h2>
+            <div class="modal-tabs">
+                <button class="modal-tab-button active" data-tab="list">User List</button>
+                <button class="modal-tab-button" data-tab="add">Add New User</button>
+            </div>
+
+            <div id="list-tab" class="tab-content active">
+                <h3>Existing Users</h3>
+                <table id="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Permissions</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Users will be loaded here by JavaScript -->
+                    </tbody>
+                </table>
+                <p id="no-users-message" style="display: none; text-align: center; margin-top: 20px;">No users found.</p>
+            </div>
+
+            <div id="add-tab" class="tab-content">
+                <h3>Add New User</h3>
+                <form id="add-user-form">
+                    <div class="input-group">
+                        <label for="new-username">Username</label>
+                        <input type="text" id="new-username" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="new-password">Password</label>
+                        <input type="password" id="new-password" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Permissions:</label>
+                        <div class="permissions-checkboxes" id="add-permissions-checkboxes">
+                            <!-- Checkboxes will be dynamically loaded -->
+                        </div>
+                    </div>
+                    <button type="submit">Add User</button>
+                    <p id="add-user-error-message" class="error-message"></p>
+                </form>
+            </div>
+
+            <div id="edit-user-modal" class="modal nested-modal">
+                <div class="modal-content nested-modal-content">
+                    <span class="close-button-nested">&times;</span>
+                    <h3>Edit User: <span id="edit-username-title"></span></h3>
+                    <form id="edit-user-form">
+                        <input type="hidden" id="edit-user-id">
+                        <div class="input-group">
+                            <label>Permissions:</label>
+                            <div class="permissions-checkboxes" id="edit-permissions-checkboxes">
+                                <!-- Checkboxes will be dynamically loaded -->
+                            </div>
+                        </div>
+                        <button type="submit">Save Changes</button>
+                        <p id="edit-user-error-message" class="error-message"></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert/Message Modal -->
+    <div id="custom-alert-modal" class="modal">
+        <div class="modal-content small-modal-content">
+            <span class="close-button-alert">&times;</span>
+            <p id="custom-alert-message"></p>
+            <button id="custom-alert-ok-button">OK</button>
+        </div>
+    </div>
+
     <script src="js/dashboard.js"></script>
 </body>
 </html>

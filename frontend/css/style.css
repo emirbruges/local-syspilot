@@ -91,6 +91,25 @@ button:hover {
     background-color: #a788d8;
 }
 
+/* Estilos para botones deshabilitados */
+button:disabled,
+.action-button:disabled {
+    background-color: var(--rose-pine-highlight-med); /* Un color de fondo más apagado */
+    color: var(--rose-pine-subtle); /* Texto más apagado */
+    cursor: not-allowed; /* Cursor de "no permitido" */
+    opacity: 0.7; /* Ligeramente transparente */
+    border-color: var(--rose-pine-highlight-high); /* Borde más oscuro */
+    box-shadow: none; /* Eliminar cualquier sombra para que no se vean "elevados" */
+}
+
+/* Estilo específico para el botón de apagado cuando está deshabilitado */
+.action-button.shutdown:disabled {
+    background-color: var(--rose-pine-overlay); /* Un color que indique inactividad */
+    border-color: var(--rose-pine-muted);
+    color: var(--rose-pine-muted);
+}
+
+
 .error-message {
     color: var(--rose-pine-love);
     margin-top: 15px;
@@ -164,8 +183,9 @@ button:hover {
     border: 1px solid var(--rose-pine-muted);
     background-color: var(--rose-pine-surface);
     color: var(--rose-pine-text);
+    transition: background-color 0.2s, opacity 0.2s, border-color 0.2s; /* Añadir transición para suavidad */
 }
-.action-button:hover {
+.action-button:hover:not(:disabled) { /* Aplicar hover solo si NO está deshabilitado */
     background-color: var(--rose-pine-highlight-low);
     border-color: var(--rose-pine-subtle);
 }
@@ -174,7 +194,7 @@ button:hover {
     border-color: var(--rose-pine-love);
     color: var(--rose-pine-base);
 }
-.action-button.shutdown:hover {
+.action-button.shutdown:hover:not(:disabled) { /* Aplicar hover solo si NO está deshabilitado */
     background-color: #d85c80;
     border-color: #d85c80;
 }
@@ -191,6 +211,7 @@ button:hover {
     background: var(--rose-pine-highlight-med);
     border-radius: 5px;
     height: 8px;
+    transition: background-color 0.2s, opacity 0.2s; /* Transición para el slider */
 }
 .volume-control input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -201,6 +222,7 @@ button:hover {
     border-radius: 50%;
     cursor: grab;
     margin-top: -6px;
+    transition: background-color 0.2s; /* Transición para el thumb */
 }
 .volume-control input[type="range"]::-moz-range-thumb {
     width: 20px;
@@ -208,11 +230,261 @@ button:hover {
     background: var(--rose-pine-pine);
     border-radius: 50%;
     cursor: grab;
+    transition: background-color 0.2s; /* Transición para el thumb */
 }
+
+/* Estilos para el slider deshabilitado */
+.volume-control input[type="range"]:disabled {
+    background: var(--rose-pine-overlay); /* Fondo más oscuro cuando está deshabilitado */
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.volume-control input[type="range"]:disabled::-webkit-slider-thumb {
+    background: var(--rose-pine-subtle); /* Thumb más apagado */
+    cursor: not-allowed;
+}
+
+.volume-control input[type="range"]:disabled::-moz-range-thumb {
+    background: var(--rose-pine-subtle); /* Thumb más apagado */
+    cursor: not-allowed;
+}
+
+/* ------------------------- */
+/* Estilos para el Modal Pop-up */
+/* ------------------------- */
+.modal {
+    display: none; /* Oculto por defecto */
+    position: fixed; /* Permanece en su lugar */
+    z-index: 1; /* Por encima de todo */
+    left: 0;
+    top: 0;
+    width: 100%; /* Ancho completo */
+    height: 100%; /* Alto completo */
+    overflow: auto; /* Habilitar scroll si es necesario (para el modal en sí) */
+    background-color: rgba(0,0,0,0.6); /* Fondo semi-transparente oscuro */
+    justify-content: center; /* Centrar contenido */
+    align-items: center; /* Centrar contenido */
+}
+
+.modal-content {
+    background-color: var(--rose-pine-surface);
+    margin: auto; /* Margen automático para centrar horizontalmente */
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    position: relative;
+    max-width: 700px; /* Ancho máximo para el modal */
+    width: 90%; /* Ancho responsivo */
+    box-sizing: border-box;
+    animation: fadeIn 0.3s ease-out; /* Animación de entrada */
+}
+
+.modal-content.small-modal-content {
+    max-width: 400px; /* Para el modal de alerta/mensaje */
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.close-button, .close-button-nested, .close-button-alert {
+    color: var(--rose-pine-subtle);
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-button:hover,
+.close-button:focus,
+.close-button-nested:hover,
+.close-button-nested:focus,
+.close-button-alert:hover,
+.close-button-alert:focus {
+    color: var(--rose-pine-love);
+}
+
+.modal-content h2 {
+    color: var(--rose-pine-text);
+    border-bottom: 1px solid var(--rose-pine-highlight-med);
+    padding-bottom: 10px;
+    margin-bottom: 25px;
+    text-align: left;
+}
+
+.modal-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--rose-pine-highlight-med);
+}
+
+.modal-tab-button {
+    background-color: var(--rose-pine-overlay);
+    color: var(--rose-pine-subtle);
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s, color 0.2s;
+    margin-right: 5px;
+    width: auto; /* Ancho automático para los botones de tab */
+}
+
+.modal-tab-button.active {
+    background-color: var(--rose-pine-iris);
+    color: var(--rose-pine-base);
+    font-weight: bold;
+    border-bottom: 1px solid var(--rose-pine-iris); /* Para un efecto de selección */
+}
+
+.modal-tab-button:hover:not(.active) {
+    background-color: var(--rose-pine-highlight-high);
+    color: var(--rose-pine-text);
+}
+
+.tab-content {
+    display: none;
+    padding: 15px 0;
+    /* --- IMPORTANTE: Añadir desplazamiento horizontal para la tabla --- */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Mejora el scroll en iOS */
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content h3 {
+    color: var(--rose-pine-text);
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+/* Tabla de usuarios */
+#users-table {
+    width: 100%; /* La tabla ahora intentará ocupar todo el ancho de su contenedor */
+    min-width: 500px; /* Establecer un ancho mínimo para la tabla si es necesario, ajusta este valor */
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+#users-table th,
+#users-table td {
+    border: 1px solid var(--rose-pine-highlight-low);
+    padding: 10px;
+    text-align: left;
+}
+
+#users-table th {
+    background-color: var(--rose-pine-overlay);
+    color: var(--rose-pine-text);
+    font-weight: bold;
+}
+
+#users-table tbody tr:nth-child(even) {
+    background-color: var(--rose-pine-highlight-low);
+}
+
+#users-table tbody tr:hover {
+    background-color: var(--rose-pine-highlight-med);
+}
+
+#users-table .action-buttons-cell {
+    white-space: nowrap; /* Evitar que los botones de acción se rompan en varias líneas */
+}
+
+#users-table .action-buttons-cell button {
+    width: auto; /* Permitir que los botones de tabla tengan ancho automático */
+    padding: 5px 10px;
+    margin-left: 5px;
+    font-size: 0.85em; /* Ajuste el tamaño de la fuente para que quepa mejor */
+    display: inline-block; /* Para que estén en la misma línea */
+}
+
+#users-table .edit-button {
+    background-color: var(--rose-pine-pine);
+    color: var(--rose-pine-base);
+}
+#users-table .edit-button:hover {
+    background-color: #2a617a;
+}
+
+#users-table .delete-button {
+    background-color: var(--rose-pine-love);
+    color: var(--rose-pine-base);
+}
+#users-table .delete-button:hover {
+    background-color: #d85c80;
+}
+
+/* Checkboxes de permisos */
+.permissions-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.permissions-checkboxes div {
+    display: flex;
+    align-items: center;
+    background-color: var(--rose-pine-highlight-low);
+    padding: 8px;
+    border-radius: 5px;
+}
+
+.permissions-checkboxes input[type="checkbox"] {
+    margin-right: 8px;
+    width: auto;
+    accent-color: var(--rose-pine-iris); /* Color del checkbox al seleccionarse */
+}
+
+.permissions-checkboxes label {
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
+/* Estilos para el modal anidado (editar usuario) */
+.nested-modal {
+    background-color: rgba(0,0,0,0.8); /* Fondo más oscuro para el modal anidado */
+    z-index: 2; /* Por encima del modal principal */
+}
+
+.nested-modal-content {
+    background-color: var(--rose-pine-overlay);
+    border: 1px solid var(--rose-pine-highlight-high);
+}
+
 
 /* ------------------------- */
 /* Media Queries para móviles */
 /* ------------------------- */
+@media (max-width: 768px) {
+    .modal-content {
+        max-width: 95%; /* Más ancho en móviles */
+        padding: 20px;
+    }
+    .modal-tab-button {
+        padding: 8px 10px;
+        font-size: 0.9em;
+    }
+    #users-table th, #users-table td {
+        padding: 8px;
+        font-size: 0.8em; /* Mantenemos el tamaño de fuente más pequeño que encontraste útil */
+    }
+    .permissions-checkboxes {
+        grid-template-columns: 1fr; /* Una columna en móviles */
+    }
+}
+
 @media (max-width: 600px) {
     body {
         height: auto; /* para que no quede forzado en altura en móvil */

@@ -6,7 +6,7 @@ from flask_cors import CORS
 import jwt
 import datetime
 from functools import wraps
-from werkzeug.security import generate_password_hash, check_password_hash # Importamos para manejo de contraseñas
+from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv() # Loads .env or settings.ini variables
 
@@ -21,23 +21,24 @@ app = Flask(
 CORS(app)
 
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
-default_admin_username = os.getenv("DEFAULT_USERNAME")
-default_admin_password = os.getenv("DEFAULT_PASSWORD") # ¡CAMBIAR EN PRODUCCIÓN!
-database_filename = os.getenv("DATABASE_FILENAME", 'syspilot.db')
 
+# Get default admin credentials from environment variables
+default_admin_username = os.getenv("DEFAULT_USERNAME")
+default_admin_password = os.getenv("DEFAULT_PASSWORD")
+database_filename = os.getenv("DATABASE_FILENAME", 'syspilot.db') # Default to 'syspilot.db' if not specified
 
 # --- DATABASE CONFIGURATION ---
-DATABASE = os.path.join(os.path.dirname(__file__), 'syspilot.db')
+DATABASE = os.path.join(os.path.dirname(__file__), database_filename) # Use the database_filename variable
 
 def get_db_connection():
-    """Establece una conexión con la base de datos SQLite."""
+    """Establishes a connection to the SQLite database."""
     conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row # Permite acceder a las filas como diccionarios
+    conn.row_factory = sqlite3.Row # Allows accessing rows as dictionaries
     return conn
 
 def init_db():
-    """Inicializa la base de datos y crea la tabla de usuarios si no existe."""
-    with app.app_context(): # Necesario para usar app.config y otras variables de la aplicación
+    """Initializes the database and creates the users table if it doesn't exist."""
+    with app.app_context(): # Required to use app.config and other application variables
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
@@ -45,18 +46,22 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
-                permissions TEXT NOT NULL -- Almacenará los permisos como una cadena JSON (ej: '{"shutdown": true, "restart": false}')
+                permissions TEXT NOT NULL -- Stores permissions as a JSON string (e.g., '{"shutdown": true, "restart": false}')
             )
         ''')
         conn.commit()
 
-        # Opcional: Crear un usuario administrador si no existe ninguno (para la primera ejecución)
+        # Optional: Create a default admin user if none exists (for the first run)
         cursor.execute("SELECT COUNT(*) FROM users")
         if cursor.fetchone()[0] == 0:
-            print("No se encontraron usuarios. Creando usuario administrador por defecto...")
+            print("No users found. Creating default administrator user...")
 
-            hashed_password = generate_password_hash(default_admin_password)
-            # Permisos por defecto para el administrador (todos en true por ahora)
+            # Check if default admin credentials are provided, otherwise use fallback
+            username_to_create = default_admin_username if default_admin_username else "admin"
+            password_to_create = default_admin_password if default_admin_password else "admin123" # CHANGE IN PRODUCTION!
+
+            hashed_password = generate_password_hash(password_to_create)
+            # Default permissions for the administrator (all true for now)
             default_permissions = {
                 "shutdown": True,
                 "restart": True,
@@ -65,7 +70,7 @@ def init_db():
                 "volume": True,
                 "system_metrics": True,
                 "modify_commands": True,
-                "manage_users": True # Nuevo permiso para gestionar usuarios
+                "manage_users": True
             }
             import json
             permissions_json = json.dumps(default_permissions)
@@ -73,61 +78,61 @@ def init_db():
             try:
                 cursor.execute(
                     "INSERT INTO users (username, password_hash, permissions) VALUES (?, ?, ?)",
-                    (default_admin_username, hashed_password, permissions_json)
+                    (username_to_create, hashed_password, permissions_json)
                 )
                 conn.commit()
-                print(f"Usuario administrador '{default_admin_username}' creado con contraseña por defecto.")
+                print(f"Default administrator user '{username_to_create}' created with default password.")
             except sqlite3.IntegrityError:
-                print(f"El usuario '{default_admin_username}' ya existe.")
+                print(f"The user '{username_to_create}' already exists.")
         conn.close()
 
-# Asegurarse de que la base de datos se inicialice al inicio de la aplicación
+# Ensure the database is initialized when the application starts
 with app.app_context():
     init_db()
 
 
 def token_required(f):
     """
-    Decorador para proteger rutas, verificando el token JWT en las cookies.
-    Redirige al login si el token es inválido o no existe.
+    Decorator to protect routes, verifying the JWT token in cookies.
+    Redirects to login if the token is invalid or missing.
     """
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.cookies.get('syspilot_token')
         if not token:
-            print("Token no encontrado en cookies. Redirigiendo a /")
+            print("Token not found in cookies. Redirecting to /")
             return redirect('/')
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
             current_user = data['user']
-            current_permissions = data.get('permissions', {}) # Obtener permisos del token
-            return f(current_user, current_permissions, *args, **kwargs) # Pasar permisos al decorador
+            current_permissions = data.get('permissions', {}) # Get permissions from the token
+            return f(current_user, current_permissions, *args, **kwargs) # Pass permissions to the decorator
         except jwt.ExpiredSignatureError:
-            print("Token expirado. Redirigiendo a /")
+            print("Token expired. Redirecting to /")
             return redirect('/')
         except jwt.InvalidTokenError:
-            print("Token inválido. Redirigiendo a /")
+            print("Invalid token. Redirecting to /")
             return redirect('/')
     return decorated
 
-# --- RUTAS HTML ---
+# --- HTML ROUTES ---
 @app.route('/')
 def index():
     token = request.cookies.get('syspilot_token')
     if token:
         try:
-            # Intentar decodificar para ver si el token es válido, si no, lo ignoramos
+            # Attempt to decode to see if the token is valid, otherwise ignore it
             jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
             return redirect(url_for('dashboard'))
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-            pass # Si el token es inválido/expirado, simplemente mostramos el login
+            pass # If the token is invalid/expired, simply show the login
 
     return render_template('index.html')
 
 @app.route('/index.html')
 @app.route('/dashboard.html')
 def redirect_to_root_or_dashboard():
-    """Redirige las solicitudes directas a index.html o dashboard.html."""
+    """Redirects direct requests to index.html or dashboard.html."""
     token = request.cookies.get('syspilot_token')
     if token:
         try:
@@ -140,15 +145,15 @@ def redirect_to_root_or_dashboard():
 
 @app.route('/dashboard')
 @token_required
-def dashboard(current_user, current_permissions): # Recibimos los permisos
-    """Renderiza el dashboard si el usuario está autenticado."""
-    # Los permisos no se usan directamente aquí para renderizar, pero se pueden usar en el JS
+def dashboard(current_user, current_permissions): # Receive permissions
+    """Renders the dashboard if the user is authenticated."""
+    # Permissions are not directly used here for rendering, but can be used in JS
     return render_template('dashboard.html')
 
-# --- RUTAS DE LA API ---
+# --- API ROUTES ---
 @app.route('/api/login', methods=['POST'])
 def login():
-    """Maneja el inicio de sesión del usuario."""
+    """Handles user login."""
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -159,24 +164,24 @@ def login():
 
     if user and check_password_hash(user['password_hash'], password):
         import json
-        permissions = json.loads(user['permissions']) # Cargar permisos como diccionario
+        permissions = json.loads(user['permissions']) # Load permissions as a dictionary
 
         token = jwt.encode({
             'user': username,
-            'permissions': permissions, # Incluir permisos en el token
+            'permissions': permissions, # Include permissions in the token
             'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
         }, app.config['SECRET_KEY'], algorithm="HS256")
 
-        response = make_response(jsonify({'success': True, 'message': 'Inicio de sesión exitoso'}))
+        response = make_response(jsonify({'success': True, 'message': 'Login successful'}))
         response.set_cookie('syspilot_token', token, httponly=True, samesite='Lax')
         return response
     
-    return jsonify({'success': False, 'message': 'Credenciales incorrectas'}), 401
+    return jsonify({'success': False, 'message': 'Incorrect credentials'}), 401
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
-    """Cierra la sesión del usuario eliminando la cookie."""
-    response = make_response(jsonify({'success': True, 'message': 'Sesión cerrada'}))
+    """Logs out the user by deleting the cookie."""
+    response = make_response(jsonify({'success': True, 'message': 'Logged out successfully'}))
     response.set_cookie('syspilot_token', '', expires=0, httponly=True, samesite='Lax')
     return response
 
@@ -184,31 +189,31 @@ def logout():
 @token_required
 def get_dashboard_data(current_user, current_permissions):
     """
-    Ruta protegida que devuelve datos del dashboard y los permisos del usuario.
+    Protected route that returns dashboard data and user permissions.
     """
-    print(f"Acceso concedido a la data del dashboard para el usuario: {current_user}")
+    print(f"Access granted to dashboard data for user: {current_user}")
     
-    # Aquí iría la lógica real para obtener métricas del sistema
-    # Por ahora, usamos datos de ejemplo:
+    # Real logic to get system metrics would go here
+    # For now, we use example data:
     data = {
         'cpu_usage': 25,
         'ram_usage': 60,
         'uptime': '18h 45m',
         'user': current_user,
-        'permissions': current_permissions # Enviar permisos al frontend
+        'permissions': current_permissions # Send permissions to the frontend
     }
     return jsonify({'success': True, 'data': data})
 
-# --- Nuevas Rutas de Gestión de Usuarios (Ejemplo) ---
+# --- New User Management Routes (Example) ---
 
 @app.route('/api/users/register', methods=['POST'])
 @token_required
 def register_user(current_user, current_permissions):
     """
-    Registra un nuevo usuario. Solo accesible por usuarios con permiso 'manage_users'.
+    Registers a new user. Accessible only by users with 'manage_users' permission.
     """
     if not current_permissions.get('manage_users', False):
-        return jsonify({'success': False, 'message': 'Permiso denegado'}), 403
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
 
     data = request.get_json()
     username = data.get('username')
@@ -216,11 +221,11 @@ def register_user(current_user, current_permissions):
     permissions_data = data.get('permissions', {})
 
     if not username or not password:
-        return jsonify({'success': False, 'message': 'Se requiere nombre de usuario y contraseña'}), 400
+        return jsonify({'success': False, 'message': 'Username and password are required'}), 400
 
     hashed_password = generate_password_hash(password)
     
-    # Validar que los permisos enviados sean de tipo booleano para cada clave esperada
+    # Validate that the submitted permissions are boolean type for each expected key
     valid_permissions = {
         "shutdown": False, "restart": False, "lock": False,
         "play_pause": False, "volume": False, "system_metrics": False,
@@ -240,9 +245,9 @@ def register_user(current_user, current_permissions):
             (username, hashed_password, permissions_json)
         )
         conn.commit()
-        return jsonify({'success': True, 'message': f'Usuario {username} registrado exitosamente'}), 201
+        return jsonify({'success': True, 'message': f'User {username} registered successfully'}), 201
     except sqlite3.IntegrityError:
-        return jsonify({'success': False, 'message': 'El nombre de usuario ya existe'}), 409
+        return jsonify({'success': False, 'message': 'Username already exists'}), 409
     finally:
         conn.close()
 
@@ -250,10 +255,10 @@ def register_user(current_user, current_permissions):
 @token_required
 def get_users(current_user, current_permissions):
     """
-    Obtiene la lista de usuarios. Solo accesible por usuarios con permiso 'manage_users'.
+    Gets the list of users. Accessible only by users with 'manage_users' permission.
     """
     if not current_permissions.get('manage_users', False):
-        return jsonify({'success': False, 'message': 'Permiso denegado'}), 403
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
     
     conn = get_db_connection()
     users = conn.execute("SELECT id, username, permissions FROM users").fetchall()
@@ -262,10 +267,10 @@ def get_users(current_user, current_permissions):
     users_list = []
     import json
     for user in users:
-        user_data = dict(user) # Convierte la fila SQLite en un diccionario
-        user_data['permissions'] = json.loads(user_data['permissions']) # Deserializa los permisos
-        # No incluir password_hash
-        del user_data['password_hash']
+        user_data = dict(user) # Convert SQLite row to a dictionary
+        user_data['permissions'] = json.loads(user_data['permissions']) # Deserialize permissions
+        # Do not include password_hash
+        user_data.pop('password_hash', None)
         users_list.append(user_data)
     
     return jsonify({'success': True, 'users': users_list})
@@ -275,10 +280,10 @@ def get_users(current_user, current_permissions):
 @token_required
 def update_user_permissions(current_user, current_permissions, user_id):
     """
-    Actualiza los permisos de un usuario específico. Solo accesible por usuarios con permiso 'manage_users'.
+    Updates permissions for a specific user. Accessible only by users with 'manage_users' permission.
     """
     if not current_permissions.get('manage_users', False):
-        return jsonify({'success': False, 'message': 'Permiso denegado'}), 403
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
 
     data = request.get_json()
     new_permissions_data = data.get('permissions', {})
@@ -288,12 +293,12 @@ def update_user_permissions(current_user, current_permissions, user_id):
 
     if not user:
         conn.close()
-        return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
+        return jsonify({'success': False, 'message': 'User not found'}), 404
 
     import json
     current_user_permissions = json.loads(user['permissions'])
 
-    # Fusionar los permisos nuevos con los existentes, validando los tipos
+    # Merge new permissions with existing ones, validating types
     updated_permissions = current_user_permissions.copy()
     for perm_key, perm_value in new_permissions_data.items():
         if perm_key in updated_permissions and isinstance(perm_value, bool):
@@ -307,9 +312,9 @@ def update_user_permissions(current_user, current_permissions, user_id):
             (permissions_json, user_id)
         )
         conn.commit()
-        return jsonify({'success': True, 'message': f'Permisos del usuario {user_id} actualizados exitosamente'})
+        return jsonify({'success': True, 'message': f'Permissions for user {user_id} updated successfully'})
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Error al actualizar permisos: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': f'Error updating permissions: {str(e)}'}), 500
     finally:
         conn.close()
 
@@ -318,15 +323,15 @@ def update_user_permissions(current_user, current_permissions, user_id):
 @token_required
 def delete_user(current_user, current_permissions, user_id):
     """
-    Elimina un usuario. Solo accesible por usuarios con permiso 'manage_users'.
-    No se permite eliminar al propio usuario si es el último administrador.
+    Deletes a user. Accessible only by users with 'manage_users' permission.
+    Prevents deleting the current user if they are the last administrator.
     """
     if not current_permissions.get('manage_users', False):
-        return jsonify({'success': False, 'message': 'Permiso denegado'}), 403
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
 
     conn = get_db_connection()
     
-    # Evitar que el último usuario administrador se elimine a sí mismo
+    # Prevent the last administrator user from deleting themselves
     user_to_delete = conn.execute("SELECT username, permissions FROM users WHERE id = ?", (user_id,)).fetchone()
     if user_to_delete:
         import json
@@ -336,43 +341,43 @@ def delete_user(current_user, current_permissions, user_id):
             admin_users = conn.execute("SELECT COUNT(*) FROM users WHERE json_extract(permissions, '$.manage_users') = 1").fetchone()[0]
             if admin_users == 1 and user_to_delete['username'] == current_user:
                 conn.close()
-                return jsonify({'success': False, 'message': 'No puedes eliminar al último usuario administrador.'}), 400
+                return jsonify({'success': False, 'message': 'Cannot delete the last administrator user.'}), 400
 
     try:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
         if cursor.rowcount == 0:
-            return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
+            return jsonify({'success': False, 'message': 'User not found'}), 404
         conn.commit()
-        return jsonify({'success': True, 'message': 'Usuario eliminado exitosamente'})
+        return jsonify({'success': True, 'message': 'User deleted successfully'})
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Error al eliminar usuario: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': f'Error deleting user: {str(e)}'}), 500
     finally:
         conn.close()
 
 
-# --- RUTAS DE ARCHIVOS ESTATICOS ---
+# --- STATIC FILE ROUTES ---
 @app.route('/css/style.css')
 def serve_style_css():
-    """Sirve el archivo CSS principal."""
+    """Serves the main CSS file."""
     return send_from_directory(f'{frontend_path}/css', 'style.css')
 
 @app.route('/js/app.js')
 def serve_app_js():
-    """Sirve el archivo JS para el login."""
+    """Serves the JS file for login."""
     return send_from_directory(f'{frontend_path}/js', 'app.js')
 
 @app.route('/js/dashboard.js')
 def serve_dashboard_js():
-    """Sirve el archivo JS para el dashboard."""
+    """Serves the JS file for the dashboard."""
     return send_from_directory(f'{frontend_path}/js', 'dashboard.js')
 
 
 @app.route('/<path:filename>')
 @token_required
-def static_files(current_user, current_permissions, filename): # También se pasan permisos aquí
-    """Sirve archivos estáticos generales protegidos por autenticación."""
-    # No es necesario usar los permisos aquí, pero el decorador los pasa
+def static_files(current_user, current_permissions, filename): # Permissions are also passed here
+    """Serves general static files protected by authentication."""
+    # Permissions are not necessarily used here, but the decorator passes them
     return send_from_directory(frontend_path, filename)
 
 if __name__ == '__main__':
@@ -380,4 +385,4 @@ if __name__ == '__main__':
         app.run(host='0.0.0.0', port=5000, debug=True)
     else:
         print("Please make sure to configure the .env or settings.ini file correctly.")
-        print("""Make sure the following variables inside of it: SECRET_KEY, DEFAULT_USERNAME, DEFAULT_PASSWORD, DATABASE_FILENAME(optional)""")
+        print("Make sure the following variables are set: SECRET_KEY, DEFAULT_USERNAME, DEFAULT_PASSWORD, DATABASE_FILENAME (optional)")
