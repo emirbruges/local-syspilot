@@ -42,10 +42,15 @@
                 <p><strong>Uptime:</strong> <span id="uptime">--</span></p>
             </div>
 
-            <!-- Nuevo Control Card para la Gestión de Usuarios -->
             <div class="control-card" id="manage-users-card" style="display: none;">
                 <h2>👥 User Management</h2>
                 <button class="action-button" id="manage-users-button">Manage Users</button>
+            </div>
+
+            <div class="control-card" id="custom-commands-card" style="display: none;">
+                <h2>⚙️ Custom Commands</h2>
+                <p>Define custom actions for your Linux system.</p>
+                <button class="action-button" id="manage-custom-commands-button">Modify Commands</button>
             </div>
         </main>
     </div>
@@ -117,6 +122,23 @@
                     </form>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal for Custom Command Management -->
+    <div id="custom-commands-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Linux Custom Command Management</h2>
+            <p>Here you can define the shell commands executed for each system action. Use with caution!</p>
+            
+            <div id="command-list">
+                <!-- Command inputs will be loaded here by JavaScript -->
+            </div>
+            
+            <button id="save-commands-button">Save All Commands</button>
+            <p id="command-message" class="error-message"></p>
+            <button id="reset-commands-button" class="reset-button">Reset to Defaults</button>
         </div>
     </div>
 

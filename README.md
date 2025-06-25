@@ -22,11 +22,11 @@ With a clean web interface and secure login, it allows you to perform basic syst
 
 ## 🧩 Roadmap
 
-* [ ] Local system control via web (shutdown, lock)
+* [x] Local system control via web (shutdown, lock)
 * [ ] Cross-platform backend (Python for Linux, C++ for Windows)
 * [x] Secure login/token-based authentication
 * [x] Basic control panel
-* [ ] Optional system metrics module
+* [x] Optional system metrics module
 * [ ] Systemd/Windows Service installation helpers
 
 ---
@@ -34,6 +34,24 @@ With a clean web interface and secure login, it allows you to perform basic syst
 ## 🛡️ Security Notice
 
 Local SysPilot is meant to be used **only inside trusted networks or over VPN**. Exposing it to the public internet is **not recommended** unless you implement proper reverse proxying and HTTPS.
+
+---
+
+## 🔧 Installation Guide
+
+### 🐧 Linux
+
+This script assumes you're using a systemd-based Linux distribution.
+
+**Requirements:** `git`, `python3`
+
+**Installation:**
+```bash
+git clone https://github.com/emirbruges/local-syspilot.git
+cd local-syspilot
+chmod +x installer.sh
+./installer.sh  # Run as a regular user (not root)
+```
 
 ---
 

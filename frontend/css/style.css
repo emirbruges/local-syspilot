@@ -113,7 +113,7 @@ button:disabled,
 .error-message {
     color: var(--rose-pine-love);
     margin-top: 15px;
-    min-height: 1em;
+    min-height: 1em; /* Maintain minimum height for consistent layout even if empty */
 }
 
 .dashboard-container {
@@ -463,6 +463,51 @@ button:disabled,
     border: 1px solid var(--rose-pine-highlight-high);
 }
 
+/* NUEVOS ESTILOS PARA EL MODAL DE COMANDOS */
+#command-list .command-item {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: var(--rose-pine-highlight-low);
+    border-radius: 6px;
+    border: 1px solid var(--rose-pine-highlight-med);
+}
+
+#command-list .command-item label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: var(--rose-pine-text);
+}
+
+#command-list .command-item input[type="text"] {
+    width: calc(100% - 20px); /* Ajustar por padding */
+    padding: 8px 10px;
+    border: 1px solid var(--rose-pine-muted);
+    background-color: var(--rose-pine-overlay);
+    color: var(--rose-pine-text);
+    border-radius: 4px;
+    font-family: monospace; /* Fuente monoespaciada para comandos */
+}
+
+/* NEW STYLES FOR BUTTON SEPARATION AND MESSAGE HIDING */
+#save-commands-button {
+    margin-top: 5px; /* Increased separation from command-list */
+}
+
+#reset-commands-button {
+    background-color: var(--rose-pine-gold); /* A different color for the reset button */
+    color: var(--rose-pine-base);
+    margin-top: 20px; /* Separation from command-message */
+}
+
+#reset-commands-button:hover {
+    background-color: #d8a85f; /* Darker color on hover */
+}
+
+#command-message {
+    display: none; /* Hidden by default, JavaScript will show it when needed */
+    margin-top: 15px; /* Separation from save-commands-button */
+    text-align: center; /* Keep text centered */
+}
 
 /* ------------------------- */
 /* Media Queries para móviles */
