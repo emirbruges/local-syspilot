@@ -768,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 clearTimeout(volumeChangeTimer);
                 volumeChangeTimer = setTimeout(async () => {
-                    showAlert(`Volume changed to: ${volumeSlider.value}% (simulated)`);
+                    showAlert(`Volume changed to: ${volumeSlider.value}%`);
                     try {
                         const response = await fetch('/api/action/set_volume', {
                             method: 'POST',
