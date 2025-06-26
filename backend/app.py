@@ -130,29 +130,91 @@ def init_db():
 with app.app_context():
     init_db()
 
+def force_relogin_response():
+    if request.accept_mimetypes.accept_html or not request.path.startswith('/api/'):
+        response = redirect(url_for('index'))
+        response.set_cookie('syspilot_token', '', expires=0, httponly=True, samesite='Lax')
+        return response
+    else:
+        response = make_response(jsonify({
+            'success': False,
+            'message': 'Your session has expired or is invalid. You need to log in again.'
+            }), 401)
+        response.set_cookie('syspilot_token', '', expires=0, httponly=True, samesite='Lax')
+        return response
 
 def token_required(f):
     """
     Decorator to protect routes, verifying the JWT token in cookies.
-    Redirects to login if the token is invalid or missing.
+    Also checks token permissions against the database on each request.
+    If permissions are inconsistent, a new token is issued and a message is returned.
+    If the token is invalid/expired or user not found, it forces a re-login.
     """
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.cookies.get('syspilot_token')
+
         if not token:
-            print("Token not found in cookies. Redirecting to /")
-            return redirect('/')
+            print("Token no encontrado en cookies.")
+            return force_relogin_response() # No hay token, forzar login
+
         try:
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-            current_user = data['user']
-            current_permissions = data.get('permissions', {})
-            return f(current_user, current_permissions, *args, **kwargs)
+            # Decodificar el token para obtener el usuario y los permisos incrustados
+            token_data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            username_from_token = token_data['user']
+            permissions_from_token = token_data.get('permissions', {})
+
+            # Obtener los últimos permisos del usuario de la base de datos
+            conn = get_db_connection()
+            db_user_row = conn.execute("SELECT permissions FROM users WHERE username = ?", (username_from_token,)).fetchone()
+            conn.close()
+
+            # Si el usuario no se encuentra en la base de datos, el token es inválido (aunque decodifique)
+            if not db_user_row:
+                print(f"User '{username_from_token}' not found in DB. Forcing re-login.")
+                return force_relogin_response()
+            
+            db_permissions = json.loads(db_user_row['permissions'])
+
+            # Comparar permisos: convertir a lista ordenada de pares (clave, valor) para comparación fiable
+            sorted_token_perms = sorted(permissions_from_token.items())
+            sorted_db_perms = sorted(db_permissions.items())
+
+            # Si los permisos son inconsistentes (cambiaron en la DB)
+            if sorted_token_perms != sorted_db_perms:
+                print(f"Permissions for user '{username_from_token}' inconsistent with DB. Issuing new token.")
+                
+                # Emitir un nuevo token con los permisos actualizados de la DB
+                new_token = jwt.encode({
+                    'user': username_from_token,
+                    'permissions': db_permissions, # Usa los permisos actualizados de la DB
+                    'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
+                }, app.config['SECRET_KEY'], algorithm="HS256")
+
+                # Crear una respuesta que establezca la nueva cookie y contenga un mensaje para el frontend
+                response_on_permission_change = make_response(jsonify({
+                    'success': True, # Esto es crucial para que el frontend no trate como error 401
+                    'message': 'Your permissions have changed. The system has updated your session. Please review your controls.',
+                    'permission_change': True # Flag para que el frontend sepa que hubo un cambio de permisos
+                }), 200) # Retornar 200 OK para que el frontend procese el mensaje
+                response_on_permission_change.set_cookie('syspilot_token', new_token, httponly=True, samesite='Lax')
+                
+                # La función decorada no se ejecuta, el controlador de ruta que la llamó debe manejar esto
+                return response_on_permission_change
+            
+            # Si todas las comprobaciones pasan, pasar los ÚLTIMOS permisos de la DB a la función
+            return f(username_from_token, db_permissions, *args, **kwargs)
+
         except jwt.ExpiredSignatureError:
-            print("Token expired. Redirecting to /")
-            return redirect('/')
+            print("Token expired. Forcing re-login.")
+            return force_relogin_response()
         except jwt.InvalidTokenError:
-            print("Invalid token. Redirecting to /")
-            return redirect('/')
+            print("Invalid token. Forcing re-login.")
+            return force_relogin_response()
+        except Exception as e:
+            # Capturar cualquier otro error inesperado durante la validación del token o la búsqueda en la DB
+            print(f"An unexpected error occurred during token validation: {str(e)}")
+            return force_relogin_response() # Denegar acceso por errores inesperados
     return decorated
 
 # --- HTML ROUTES ---
@@ -246,17 +308,17 @@ def get_dashboard_data(current_user, current_permissions):
         uptime_cmd = get_uptime_cmd_row['command_value'] if get_uptime_cmd_row else sys_actions.DEFAULT_COMMANDS.get('get_uptime_cmd')
 
         if cpu_cmd and sys_actions and hasattr(sys_actions, 'execute_shell_command') and hasattr(sys_actions, 'get_cpu_usage'):
-            cpu_result = sys_actions.execute_shell_command(cpu_cmd)
+            cpu_result = sys_actions.execute_shell_command(cpu_cmd, 'get_cpu_usage_cmd')
             if cpu_result["success"]:
                 cpu_usage = sys_actions.get_cpu_usage(cpu_result["message"])
         
         if ram_cmd and sys_actions and hasattr(sys_actions, 'execute_shell_command') and hasattr(sys_actions, 'get_ram_usage'):
-            ram_result = sys_actions.execute_shell_command(ram_cmd)
+            ram_result = sys_actions.execute_shell_command(ram_cmd, 'get_ram_usage_cmd')
             if ram_result["success"]:
                 ram_usage = sys_actions.get_ram_usage(ram_result["message"])
 
         if uptime_cmd and sys_actions and hasattr(sys_actions, 'execute_shell_command') and hasattr(sys_actions, 'get_uptime'):
-            uptime_result = sys_actions.execute_shell_command(uptime_cmd)
+            uptime_result = sys_actions.execute_shell_command(uptime_cmd, 'get_uptime_cmd')
             if uptime_result["success"]:
                 uptime = sys_actions.get_uptime(uptime_result["message"])
 
@@ -266,9 +328,12 @@ def get_dashboard_data(current_user, current_permissions):
         'ram_usage': ram_usage if ram_usage is not None else '--',
         'uptime': uptime if uptime is not None else '--',
         'user': current_user,
-        'permissions': current_permissions,
+        'permissions': current_permissions, # This will be the fresh DB permissions
         'os_type': platform.system()
     }
+    # For HTML routes, if the token was updated, the redirect handles the new cookie.
+    # For API routes, the token_required decorator handles setting the new cookie directly
+    # and then the current_permissions passed to `get_dashboard_data` will be the correct ones.
     return jsonify({'success': True, 'data': data})
 
 # --- New User Management Routes (Example) ---
@@ -589,7 +654,7 @@ def api_shutdown(current_user, current_permissions):
     if not command_to_execute:
         return jsonify({"success": False, "message": "Shutdown command not defined."}), 500
 
-    result = sys_actions.execute_shell_command(command_to_execute)
+    result = sys_actions.execute_shell_command(command_to_execute, 'shutdown_cmd')
     status_code = 200 if result["success"] else 500
     return jsonify(result), status_code
 
@@ -611,7 +676,7 @@ def api_restart(current_user, current_permissions):
     if not command_to_execute:
         return jsonify({"success": False, "message": "Restart command not defined."}), 500
 
-    result = sys_actions.execute_shell_command(command_to_execute)
+    result = sys_actions.execute_shell_command(command_to_execute, 'restart_cmd')
     status_code = 200 if result["success"] else 500
     return jsonify(result), status_code
 
@@ -633,7 +698,7 @@ def api_lock(current_user, current_permissions):
     if not command_to_execute:
         return jsonify({"success": False, "message": "Lock command not defined."}), 500
 
-    result = sys_actions.execute_shell_command(command_to_execute)
+    result = sys_actions.execute_shell_command(command_to_execute, 'lock_cmd')
     status_code = 200 if result["success"] else 500
     return jsonify(result), status_code
 
@@ -655,7 +720,7 @@ def api_play_pause(current_user, current_permissions):
     if not command_to_execute:
         return jsonify({"success": False, "message": "Play/Pause command not defined."}), 500
 
-    result = sys_actions.execute_shell_command(command_to_execute)
+    result = sys_actions.execute_shell_command(command_to_execute, 'play_pause_cmd')
     status_code = 200 if result["success"] else 500
     return jsonify(result), status_code
 
@@ -678,7 +743,7 @@ def api_media_next(current_user, current_permissions):
     if not command_to_execute:
         return jsonify({"success": False, "message": "Media Next command not defined."}), 500
 
-    result = sys_actions.execute_shell_command(command_to_execute)
+    result = sys_actions.execute_shell_command(command_to_execute, 'media_next_cmd')
     status_code = 200 if result["success"] else 500
     return jsonify(result), status_code
 
@@ -701,7 +766,7 @@ def api_media_previous(current_user, current_permissions):
     if not command_to_execute:
         return jsonify({"success": False, "message": "Media Previous command not defined."}), 500
 
-    result = sys_actions.execute_shell_command(command_to_execute)
+    result = sys_actions.execute_shell_command(command_to_execute, 'media_previous_cmd')
     status_code = 200 if result["success"] else 500
     return jsonify(result), status_code
 
@@ -728,7 +793,7 @@ def api_set_volume(current_user, current_permissions):
     if not command_to_execute:
         return jsonify({"success": False, "message": "Set volume command not defined."}), 500
         
-    result = sys_actions.execute_shell_command(command_to_execute, level_placeholder=level)
+    result = sys_actions.execute_shell_command(command_to_execute, 'set_volume_cmd', level_placeholder=level)
     status_code = 200 if result["success"] else 500
     return jsonify(result), status_code
 
@@ -751,7 +816,7 @@ def api_volume_mute(current_user, current_permissions):
     if not command_to_execute:
         return jsonify({"success": False, "message": "Volume Mute command not defined."}), 500
 
-    result = sys_actions.execute_shell_command(command_to_execute)
+    result = sys_actions.execute_shell_command(command_to_execute, 'volume_mute_cmd')
     status_code = 200 if result["success"] else 500
     return jsonify(result), status_code
 
@@ -778,7 +843,7 @@ def get_current_volume(current_user, current_permissions):
 
     # Get volume level
     if command_to_execute_volume and sys_actions and hasattr(sys_actions, 'get_volume'):
-        shell_result_volume = sys_actions.execute_shell_command(command_to_execute_volume)
+        shell_result_volume = sys_actions.execute_shell_command(command_to_execute_volume, 'get_volume_cmd')
         if shell_result_volume["success"]:
             volume_level_result = sys_actions.get_volume(shell_result_volume["message"])
             if volume_level_result["success"]:
@@ -790,7 +855,7 @@ def get_current_volume(current_user, current_permissions):
 
     # Get mute status
     if command_to_execute_mute and sys_actions and hasattr(sys_actions, 'is_muted'):
-        shell_result_mute = sys_actions.execute_shell_command(command_to_execute_mute)
+        shell_result_mute = sys_actions.execute_shell_command(command_to_execute_mute, 'get_mute_status_cmd')
         if shell_result_mute["success"]:
             mute_status_result = sys_actions.is_muted(shell_result_mute["message"])
             if mute_status_result["success"]:

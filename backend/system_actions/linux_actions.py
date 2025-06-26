@@ -13,7 +13,7 @@ DEFAULT_COMMANDS = {
     "media_next_cmd": "playerctl next",
     "media_previous_cmd": "playerctl previous",
     "set_volume_cmd": "pactl set-sink-volume @DEFAULT_SINK@ {}%",
-    "get_volume_cmd": "pactl get-sink-volume @DEFAULT_SINK@ || amixer get Master",
+"get_volume_cmd": "pactl get-sink-volume @DEFAULT_SINK@ || amixer get Master",
     "volume_mute_cmd": "pactl set-sink-mute @DEFAULT_SINK@ toggle || amixer -D pulse sset Master toggle",
     "get_cpu_usage_cmd": "grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}'",
     "get_ram_usage_cmd": "free -m | awk 'NR==2{printf \"%.0f\", $3*100/$2 }'",
@@ -21,7 +21,23 @@ DEFAULT_COMMANDS = {
     "get_mute_status_cmd": "pactl get-sink-mute @DEFAULT_SINK@ || amixer get Master"
 }
 
-def execute_shell_command(command_string, level_placeholder=None):
+SUCCESS_COMMANDS_MESSAGES = {
+    "shutdown_cmd": "Shutdown command executed successfully.",
+    "restart_cmd": "Restart command executed successfully.",
+    "lock_cmd": "Lock session command executed successfully.",
+    "play_pause_cmd": "Play/Pause command executed successfully.",
+    "media_next_cmd": "Media next command executed successfully.",
+    "media_previous_cmd": "Media previous command executed successfully.",
+    "set_volume_cmd": "Set volume command executed successfully.",
+    "get_volume_cmd": "Get volume command executed successfully.",
+    "volume_mute_cmd": "Mute command executed successfully.",
+    "get_cpu_usage_cmd": "Get CPU usage command executed successfully.",
+    "get_ram_usage_cmd": "Get RAM usage command executed successfully.",
+    "get_uptime_cmd": "Get uptime command executed successfully.",
+    "get_mute_status_cmd": "Get mute status command executed successfully."
+}
+
+def execute_shell_command(command_string, command_action, level_placeholder=None):
     """
     Ejecuta un comando de shell.
     Si level_placeholder es un valor, reemplaza el placeholder en el comando.
@@ -38,8 +54,7 @@ def execute_shell_command(command_string, level_placeholder=None):
         if result.stderr:
             print(f"Stderr: {result.stderr.strip()}")
         
-        # MODIFICACIÓN: Si la salida estándar está vacía, proporciona un mensaje de éxito genérico
-        final_message = stdout_message if stdout_message else "Command executed successfully."
+        final_message = stdout_message if stdout_message else SUCCESS_COMMANDS_MESSAGES[command_action]
         
         return {"success": True, "message": final_message}
     except subprocess.CalledProcessError as e:
@@ -65,7 +80,6 @@ def lock_session():
 def play_pause_media():
     pass
 
-# NUEVAS FUNCIONES DE ACCIÓN PARA MEDIA Y VOLUMEN (placeholders)
 def media_next():
     pass
 
@@ -78,8 +92,7 @@ def volume_mute():
 def set_volume(level):
     pass
 
-# Implementación de métricas: Ahora reciben la salida del comando para parsearla
-def get_cpu_usage(command_output): # MODIFIED: Accepts command_output
+def get_cpu_usage(command_output):
     """
     Parsea la salida del comando para obtener el uso de CPU.
     """

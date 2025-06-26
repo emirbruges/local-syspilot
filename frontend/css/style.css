@@ -532,10 +532,53 @@ button:disabled,
 
 #command-message {
     display: none; /* Hidden by default, JavaScript will show it when needed */
-    margin-top: 20px; /* Separation from save-commands-button */
-    margin-bottom: 0px; /* Separation from reset-commands-button */
+    margin-top: 15px; /* Separation from save-commands-button */
     text-align: center; /* Keep text centered */
 }
+
+
+/* --- NEW: In-page Notification Styles --- */
+.page-notification {
+    position: fixed; /* Fixed position relative to the viewport */
+    top: 20px; /* 20px from the top */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Adjust for exact centering */
+    background-color: var(--rose-pine-overlay); /* Default background */
+    color: var(--rose-pine-text); /* Default text color */
+    padding: 12px 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1000; /* High z-index to be on top */
+    opacity: 0; /* Hidden by default */
+    visibility: hidden; /* Hidden for accessibility until shown */
+    transition: opacity 0.4s ease-out, visibility 0.4s ease-out, transform 0.4s ease-out;
+    max-width: 90%; /* Max width for responsiveness */
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.page-notification.show {
+    opacity: 1; /* Fade in */
+    visibility: visible; /* Make visible */
+    transform: translateX(-50%) translateY(0); /* Slide down slightly */
+}
+
+/* Notification types */
+.page-notification.success {
+    background-color: var(--rose-pine-pine); /* Greenish-blue for success */
+    color: var(--rose-pine-base);
+}
+
+.page-notification.error {
+    background-color: var(--rose-pine-love); /* Reddish for error */
+    color: var(--rose-pine-base);
+}
+
+.page-notification.info {
+    background-color: var(--rose-pine-iris); /* Purplish for info */
+    color: var(--rose-pine-base);
+}
+
 
 /* ------------------------- */
 /* Media Queries para móviles */
@@ -555,6 +598,12 @@ button:disabled,
     }
     .permissions-checkboxes {
         grid-template-columns: 1fr; /* Una columna en móviles */
+    }
+
+    .page-notification {
+        top: 10px; /* Slightly higher on smaller screens */
+        padding: 10px 15px;
+        font-size: 0.9em;
     }
 }
 

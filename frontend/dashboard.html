@@ -16,17 +16,18 @@
             </div>
         </header>
 
+        <div id="page-notification" class="page-notification"></div>
+
         <main class="controls-grid">
             <div class="control-card">
                 <h2>🔌 Energy Control</h2>
                 <button class="action-button shutdown">Shutdown</button>
                 <button class="action-button restart">Reboot</button>
-                <button class="action-button lock">Block Session</button>
+                <button class="action-button lock">Lock Session</button>
             </div>
 
             <div class="control-card">
                 <h2>🎛️ Multimedia Control </h2>
-                <!-- NUEVOS BOTONES DE MEDIA EN UNA SOLA LÍNEA -->
                 <div class="media-buttons-row">
                     <button class="action-button media-previous">⏮️ Previous</button>
                     <button class="action-button play-pause">▶️ Play/Pause</button>
@@ -38,74 +39,71 @@
                     <span id="volume-percentage">50%</span>
                     <span>🔊</span>
                 </div>
-                <!-- NUEVO BOTÓN DE MUTE -->
                 <button class="action-button volume-mute" id="volume-mute-button">🔇 Mute</button>
             </div>
             
             <div class="control-card">
                 <h2>📊 System Metrics</h2>
-                <p><strong>CPU:</strong> <span id="cpu-usage">--</span>%</p>
-                <p><strong>RAM:</strong> <span id="ram-usage">--</span>%</p>
-                <p><strong>Uptime:</strong> <span id="uptime">--</span></p>
+                <p>CPU Usage: <span id="cpu-usage">Loading...</span></p>
+                <p>RAM Usage: <span id="ram-usage">Loading...</span></p>
+                <p>Uptime: <span id="uptime">Loading...</span></p>
             </div>
 
-            <div class="control-card" id="manage-users-card" style="display: none;">
+            <div class="control-card" id="manage-users-card">
                 <h2>👥 User Management</h2>
-                <button class="action-button" id="manage-users-button">Manage Users</button>
+                <button id="manage-users-button" class="action-button">Manage Users</button>
             </div>
 
-            <div class="control-card" id="custom-commands-card" style="display: none;">
-                <h2>⚙️ Custom Commands</h2>
-                <p>Define custom actions for your Linux system.</p>
-                <button class="action-button" id="manage-custom-commands-button">Modify Commands</button>
+            <div class="control-card" id="custom-commands-card">
+                <h2>⌨️ Custom Commands</h2>
+                <button id="manage-custom-commands-button" class="action-button">Manage Commands</button>
             </div>
         </main>
     </div>
 
-    <!-- Modal de Gestión de Usuarios -->
     <div id="user-management-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content large-modal-content">
             <span class="close-button">&times;</span>
             <h2>User Management</h2>
             <div class="modal-tabs">
                 <button class="modal-tab-button active" data-tab="list">User List</button>
-                <button class="modal-tab-button" data-tab="add">Add New User</button>
+                <button class="modal-tab-button" data-tab="add">Add User</button>
             </div>
 
             <div id="list-tab" class="tab-content active">
-                <h3>Existing Users</h3>
-                <table id="users-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Permissions</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Users will be loaded here by JavaScript -->
-                    </tbody>
-                </table>
-                <p id="no-users-message" style="display: none; text-align: center; margin-top: 20px;">No users found.</p>
+                <h3>Current Users</h3>
+                <p id="no-users-message" style="text-align: center; display: none;">No users found.</p>
+                <div class="table-container">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Permissions</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
             </div>
 
             <div id="add-tab" class="tab-content">
                 <h3>Add New User</h3>
                 <form id="add-user-form">
-                    <div class="input-group">
-                        <label for="new-username">Username</label>
-                        <input type="text" id="new-username" required>
+                    <div class="form-group">
+                        <label for="new-username">Username:</label>
+                        <input type="text" id="new-username" name="username" required>
                     </div>
-                    <div class="input-group">
-                        <label for="new-password">Password</label>
-                        <input type="password" id="new-password" required>
+                    <div class="form-group">
+                        <label for="new-password">Password:</label>
+                        <input type="password" id="new-password" name="password" required>
                     </div>
-                    <div class="input-group">
+                    <div class="form-group">
                         <label>Permissions:</label>
-                        <div class="permissions-checkboxes" id="add-permissions-checkboxes">
-                            <!-- Checkboxes will be dynamically loaded -->
-                        </div>
+                        <div id="add-permissions-checkboxes" class="permissions-checkboxes">
+                            </div>
                     </div>
                     <button type="submit">Add User</button>
                     <p id="add-user-error-message" class="error-message"></p>
@@ -113,16 +111,15 @@
             </div>
 
             <div id="edit-user-modal" class="modal nested-modal">
-                <div class="modal-content nested-modal-content">
+                <div class="modal-content small-modal-content">
                     <span class="close-button-nested">&times;</span>
-                    <h3>Edit User: <span id="edit-username-title"></span></h3>
+                    <h3 id="edit-username-title">Edit User</h3>
                     <form id="edit-user-form">
                         <input type="hidden" id="edit-user-id">
-                        <div class="input-group">
+                        <div class="form-group">
                             <label>Permissions:</label>
-                            <div class="permissions-checkboxes" id="edit-permissions-checkboxes">
-                                <!-- Checkboxes will be dynamically loaded -->
-                            </div>
+                            <div id="edit-permissions-checkboxes" class="permissions-checkboxes">
+                                </div>
                         </div>
                         <button type="submit">Save Changes</button>
                         <p id="edit-user-error-message" class="error-message"></p>
@@ -132,7 +129,6 @@
         </div>
     </div>
 
-    <!-- Modal for Custom Command Management -->
     <div id="custom-commands-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
@@ -140,8 +136,7 @@
             <p>Here you can define the shell commands executed for each system action. Use with caution!</p>
             
             <div id="command-list">
-                <!-- Command inputs will be loaded here by JavaScript -->
-            </div>
+                </div>
             
             <button id="save-commands-button">Save All Commands</button>
             <p id="command-message" class="error-message"></p>
@@ -149,7 +144,6 @@
         </div>
     </div>
 
-    <!-- Custom Alert/Message Modal -->
     <div id="custom-alert-modal" class="modal">
         <div class="modal-content small-modal-content">
             <span class="close-button-alert">&times;</span>
@@ -161,3 +155,4 @@
     <script src="js/dashboard.js"></script>
 </body>
 </html>
+
