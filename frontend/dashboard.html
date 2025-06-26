@@ -26,13 +26,20 @@
 
             <div class="control-card">
                 <h2>🎛️ Multimedia Control </h2>
-                <button class="action-button play-pause">▶️ Play/Pause</button>
+                <!-- NUEVOS BOTONES DE MEDIA EN UNA SOLA LÍNEA -->
+                <div class="media-buttons-row">
+                    <button class="action-button media-previous">⏮️ Previous</button>
+                    <button class="action-button play-pause">▶️ Play/Pause</button>
+                    <button class="action-button media-next">⏭️ Next</button>
+                </div>
                 <div class="volume-control">
                     <span>🔉</span>
                     <input type="range" min="0" max="100" value="50" id="volume-slider">
                     <span id="volume-percentage">50%</span>
                     <span>🔊</span>
                 </div>
+                <!-- NUEVO BOTÓN DE MUTE -->
+                <button class="action-button volume-mute" id="volume-mute-button">🔇 Mute</button>
             </div>
             
             <div class="control-card">

@@ -8,13 +8,17 @@ import re # Importar para expresiones regulares
 DEFAULT_COMMANDS = {
     "shutdown_cmd": "sudo systemctl poweroff",
     "restart_cmd": "sudo systemctl reboot",
-    "lock_cmd": "gnome-screensaver-command -l || loginctl lock-session", # Fallback para diferentes DEs
+    "lock_cmd": "gnome-screensaver-command -l || loginctl lock-session",
     "play_pause_cmd": "playerctl play-pause",
-    "set_volume_cmd": "pactl set-sink-volume @DEFAULT_SINK@ {}% || amixer -D pulse sset Master {}%", # {} es un placeholder para el nivel
-    "get_cpu_usage_cmd": "grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}'", # Muy básico, no ideal para tiempo real
+    "media_next_cmd": "playerctl next",
+    "media_previous_cmd": "playerctl previous",
+    "set_volume_cmd": "pactl set-sink-volume @DEFAULT_SINK@ {}%",
+    "get_volume_cmd": "pactl get-sink-volume @DEFAULT_SINK@ || amixer get Master",
+    "volume_mute_cmd": "pactl set-sink-mute @DEFAULT_SINK@ toggle || amixer -D pulse sset Master toggle",
+    "get_cpu_usage_cmd": "grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}'",
     "get_ram_usage_cmd": "free -m | awk 'NR==2{printf \"%.0f\", $3*100/$2 }'",
     "get_uptime_cmd": "uptime -p | sed 's/^up //'",
-    "get_volume_cmd": "pactl get-sink-volume @DEFAULT_SINK@ || amixer get Master" # Comando para obtener el volumen
+    "get_mute_status_cmd": "pactl get-sink-mute @DEFAULT_SINK@ || amixer get Master"
 }
 
 def execute_shell_command(command_string, level_placeholder=None):
@@ -46,6 +50,7 @@ def execute_shell_command(command_string, level_placeholder=None):
         return {"success": False, "message": f"Command not found for: '{command_string.split(' ')[0]}'."}
     except Exception as e:
         return {"success": False, "message": f"An unexpected error occurred: {str(e)}"}
+
 # Las funciones de acción específicas ahora simplemente tienen un 'pass'
 # app.py las obtendrá de la DB o DEFAULT_COMMANDS y ejecutará directamente
 def shutdown():
@@ -58,6 +63,16 @@ def lock_session():
     pass
 
 def play_pause_media():
+    pass
+
+# NUEVAS FUNCIONES DE ACCIÓN PARA MEDIA Y VOLUMEN (placeholders)
+def media_next():
+    pass
+
+def media_previous():
+    pass
+
+def volume_mute():
     pass
 
 def set_volume(level):
@@ -124,3 +139,24 @@ def get_volume(command_output):
         return {"success": True, "level": level}
     else:
         return {"success": False, "message": "Failed to parse volume level from command output."}
+
+def is_muted(command_output):
+    """
+    Parsea la salida de un comando de mute para determinar si el volumen está muteado.
+    Busca patrones de 'Mute: yes' o '[off]' para pactl/amixer.
+    """
+    if not command_output:
+        return {"success": False, "is_muted": None, "message": "No output to parse mute status."}
+
+    # pactl output example: "Mute: yes" or "Mute: no"
+    # amixer output example: "[off]" or "[on]"
+    is_muted_val = False
+    if re.search(r'Mute: yes', command_output, re.IGNORECASE) or re.search(r'\[off\]', command_output, re.IGNORECASE):
+        is_muted_val = True
+    elif re.search(r'Mute: no', command_output, re.IGNORECASE) or re.search(r'\[on\]', command_output, re.IGNORECASE):
+        is_muted_val = False
+    else:
+        print(f"Warning: Could not parse mute status from output: '{command_output}'")
+        return {"success": False, "is_muted": None, "message": "Could not parse mute status."}
+    
+    return {"success": True, "is_muted": is_muted_val}

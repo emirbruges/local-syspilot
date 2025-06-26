@@ -56,7 +56,8 @@ def init_db():
     and populates them with default values if empty.
     """
     with app.app_context():
-        conn = get_db_connection()
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
         # Create users table
@@ -87,9 +88,11 @@ def init_db():
             password_to_create = default_admin_password if default_admin_password else "admin123" 
 
             hashed_password = generate_password_hash(password_to_create)
+            # MODIFICACIÓN: Añadir nuevas permisos por defecto
             default_permissions = {
                 "shutdown": True, "restart": True, "lock": True,
-                "play_pause": True, "volume": True, "system_metrics": True,
+                "play_pause": True, "media_next": True, "media_previous": True,
+                "volume": True, "volume_mute": True, "system_metrics": True,
                 "modify_commands": True, "manage_users": True
             }
             permissions_json = json.dumps(default_permissions)
@@ -104,23 +107,23 @@ def init_db():
             except sqlite3.IntegrityError:
                 print(f"The user '{username_to_create}' already exists.")
         
-        # Populate default commands if commands table is empty
-        cursor.execute("SELECT COUNT(*) FROM commands")
-        if cursor.fetchone()[0] == 0 and supported_system:
-            print("No custom commands found. Populating with system defaults...")
-            if sys_actions and hasattr(sys_actions, 'DEFAULT_COMMANDS'):
+        # MODIFICACIÓN CLAVE: Eliminar todos los comandos existentes y volver a insertar los valores predeterminados
+        if supported_system and sys_actions and hasattr(sys_actions, 'DEFAULT_COMMANDS'):
+            print("Resetting and ensuring all default commands are present in the database...")
+            try:
+                cursor.execute("DELETE FROM commands") # Eliminar todos los comandos existentes
                 for key, value in sys_actions.DEFAULT_COMMANDS.items():
-                    try:
-                        cursor.execute(
-                            "INSERT INTO commands (command_key, command_value) VALUES (?, ?)",
-                            (key, value)
-                        )
-                    except sqlite3.IntegrityError:
-                        print(f"Command key '{key}' already exists, skipping default insertion.")
+                    cursor.execute(
+                        "INSERT INTO commands (command_key, command_value) VALUES (?, ?)",
+                        (key, value)
+                    )
                 conn.commit()
-                print("Default commands populated successfully.")
-            else:
-                print("Cannot populate default commands: sys_actions.DEFAULT_COMMANDS not found or system not supported.")
+                print("Default commands reset and populated successfully.")
+            except Exception as e:
+                conn.rollback() # Rollback en caso de error
+                print(f"Error resetting or populating default commands: {e}")
+        else:
+            print("Cannot populate default commands: sys_actions.DEFAULT_COMMANDS not found or system not supported.")
         conn.close()
 
 # Ensure the database is initialized when the application starts
@@ -291,7 +294,8 @@ def register_user(current_user, current_permissions):
     
     valid_permissions = {
         "shutdown": False, "restart": False, "lock": False,
-        "play_pause": False, "volume": False, "system_metrics": False,
+        "play_pause": False, "media_next": False, "media_previous": False,
+        "volume": False, "volume_mute": False, "system_metrics": False,
         "modify_commands": False, "manage_users": False
     }
     for perm_key, perm_value in permissions_data.items():
@@ -655,6 +659,52 @@ def api_play_pause(current_user, current_permissions):
     status_code = 200 if result["success"] else 500
     return jsonify(result), status_code
 
+# NUEVO ENDPOINT: Media Next
+@app.route('/api/action/media_next', methods=['POST'])
+@token_required
+def api_media_next(current_user, current_permissions):
+    if not current_permissions.get('media_next', False):
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+
+    if not supported_system:
+        return jsonify({"success": False, "message": "System actions not available on this OS."}), 501
+
+    conn = get_db_connection()
+    command_row = conn.execute("SELECT command_value FROM commands WHERE command_key = 'media_next_cmd'").fetchone()
+    conn.close()
+    
+    command_to_execute = command_row['command_value'] if command_row else sys_actions.DEFAULT_COMMANDS.get('media_next_cmd')
+
+    if not command_to_execute:
+        return jsonify({"success": False, "message": "Media Next command not defined."}), 500
+
+    result = sys_actions.execute_shell_command(command_to_execute)
+    status_code = 200 if result["success"] else 500
+    return jsonify(result), status_code
+
+# NUEVO ENDPOINT: Media Previous
+@app.route('/api/action/media_previous', methods=['POST'])
+@token_required
+def api_media_previous(current_user, current_permissions):
+    if not current_permissions.get('media_previous', False):
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+
+    if not supported_system:
+        return jsonify({"success": False, "message": "System actions not available on this OS."}), 501
+
+    conn = get_db_connection()
+    command_row = conn.execute("SELECT command_value FROM commands WHERE command_key = 'media_previous_cmd'").fetchone()
+    conn.close()
+    
+    command_to_execute = command_row['command_value'] if command_row else sys_actions.DEFAULT_COMMANDS.get('media_previous_cmd')
+
+    if not command_to_execute:
+        return jsonify({"success": False, "message": "Media Previous command not defined."}), 500
+
+    result = sys_actions.execute_shell_command(command_to_execute)
+    status_code = 200 if result["success"] else 500
+    return jsonify(result), status_code
+
 @app.route('/api/action/set_volume', methods=['POST'])
 @token_required
 def api_set_volume(current_user, current_permissions):
@@ -682,34 +732,79 @@ def api_set_volume(current_user, current_permissions):
     status_code = 200 if result["success"] else 500
     return jsonify(result), status_code
 
+# NUEVO ENDPOINT: Volume Mute/Unmute
+@app.route('/api/action/volume_mute', methods=['POST'])
+@token_required
+def api_volume_mute(current_user, current_permissions):
+    if not current_permissions.get('volume_mute', False): # Use volume_mute permission
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+
+    if not supported_system:
+        return jsonify({"success": False, "message": "System actions not available on this OS."}), 501
+
+    conn = get_db_connection()
+    command_row = conn.execute("SELECT command_value FROM commands WHERE command_key = 'volume_mute_cmd'").fetchone()
+    conn.close()
+    
+    command_to_execute = command_row['command_value'] if command_row else sys_actions.DEFAULT_COMMANDS.get('volume_mute_cmd')
+
+    if not command_to_execute:
+        return jsonify({"success": False, "message": "Volume Mute command not defined."}), 500
+
+    result = sys_actions.execute_shell_command(command_to_execute)
+    status_code = 200 if result["success"] else 500
+    return jsonify(result), status_code
+
 @app.route('/api/volume', methods=['GET'])
 @token_required
 def get_current_volume(current_user, current_permissions):
-    if not current_permissions.get('volume', False):
-        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+    # MODIFICACIÓN: Ahora devuelve nivel Y estado de mute
+    if not current_permissions.get('volume', False) and not current_permissions.get('volume_mute', False):
+        return jsonify({'success': False, 'message': 'Permission denied for volume or mute status.'}), 403
 
     if not supported_system or platform.system() != "Linux":
         return jsonify({"success": False, "message": "Volume retrieval not supported or implemented on this OS."}), 501
 
     conn = get_db_connection()
-    command_row = conn.execute("SELECT command_value FROM commands WHERE command_key = 'get_volume_cmd'").fetchone()
+    get_volume_cmd_row = conn.execute("SELECT command_value FROM commands WHERE command_key = 'get_volume_cmd'").fetchone()
+    get_mute_status_cmd_row = conn.execute("SELECT command_value FROM commands WHERE command_key = 'get_mute_status_cmd'").fetchone()
     conn.close()
 
-    command_to_execute = command_row['command_value'] if command_row else sys_actions.DEFAULT_COMMANDS.get('get_volume_cmd')
+    command_to_execute_volume = get_volume_cmd_row['command_value'] if get_volume_cmd_row else sys_actions.DEFAULT_COMMANDS.get('get_volume_cmd')
+    command_to_execute_mute = get_mute_status_cmd_row['command_value'] if get_mute_status_cmd_row else sys_actions.DEFAULT_COMMANDS.get('get_mute_status_cmd')
 
-    if not command_to_execute:
-        return jsonify({"success": False, "message": "Get volume command not defined."}), 500
+    volume_level = None
+    is_muted_status = None
 
-    shell_result = sys_actions.execute_shell_command(command_to_execute)
-    
-    if shell_result["success"]:
-        volume_level_result = sys_actions.get_volume(shell_result["message"])
-        if volume_level_result["success"]:
-            return jsonify({'success': True, 'level': volume_level_result['level']}), 200
+    # Get volume level
+    if command_to_execute_volume and sys_actions and hasattr(sys_actions, 'get_volume'):
+        shell_result_volume = sys_actions.execute_shell_command(command_to_execute_volume)
+        if shell_result_volume["success"]:
+            volume_level_result = sys_actions.get_volume(shell_result_volume["message"])
+            if volume_level_result["success"]:
+                volume_level = volume_level_result['level']
+            else:
+                print(f"Warning: Failed to parse volume level: {volume_level_result['message']}")
         else:
-            return jsonify({'success': False, 'message': volume_level_result['message'] or 'Failed to parse volume output.'}), 500
+            print(f"Warning: Failed to execute get_volume_cmd: {shell_result_volume['message']}")
+
+    # Get mute status
+    if command_to_execute_mute and sys_actions and hasattr(sys_actions, 'is_muted'):
+        shell_result_mute = sys_actions.execute_shell_command(command_to_execute_mute)
+        if shell_result_mute["success"]:
+            mute_status_result = sys_actions.is_muted(shell_result_mute["message"])
+            if mute_status_result["success"]:
+                is_muted_status = mute_status_result['is_muted']
+            else:
+                print(f"Warning: Failed to parse mute status: {mute_status_result['message']}")
+        else:
+            print(f"Warning: Failed to execute get_mute_status_cmd: {shell_result_mute['message']}")
+
+    # Return combined result
+    if volume_level is not None or is_muted_status is not None:
+        return jsonify({'success': True, 'level': volume_level, 'is_muted': is_muted_status}), 200
     else:
-        return jsonify({'success': False, 'message': shell_result['message'] or 'Failed to execute get volume command.'}), 500
+        return jsonify({'success': False, 'message': 'Failed to retrieve volume or mute status.'}), 500
 
 
 if __name__ == '__main__':
@@ -721,4 +816,3 @@ if __name__ == '__main__':
             print("Make sure the following variables are set: SECRET_KEY, DEFAULT_USERNAME, DEFAULT_PASSWORD, DATABASE_FILENAME (optional)")
     else:
         print("Backend server cannot run: Unsupported operating system. Please use Linux or Windows.")
-

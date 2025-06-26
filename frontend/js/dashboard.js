@@ -6,7 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
         "restart": "Reboot",
         "lock": "Lock Session",
         "play_pause": "Play/Pause",
+        "media_next": "Next Track",       // NUEVO PERMISO
+        "media_previous": "Previous Track", // NUEVO PERMISO
         "volume": "Volume Control",
+        "volume_mute": "Mute Volume",     // NUEVO PERMISO
         "system_metrics": "System Metrics",
         "modify_commands": "Modify Commands",
         "manage_users": "Manage Users"
@@ -45,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Volume control elements
     const volumeSlider = document.getElementById('volume-slider');
     const volumePercentageSpan = document.getElementById('volume-percentage');
+    const volumeMuteButton = document.getElementById('volume-mute-button'); // NUEVO: Mute button
     let volumeChangeTimer;
 
     // Custom Commands elements
@@ -86,22 +90,31 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.action-button.lock').disabled = !userPermissions.lock;
 
         const playPauseButton = document.querySelector('.action-button.play-pause');
+        const mediaNextButton = document.querySelector('.action-button.media-next');     // NUEVO
+        const mediaPreviousButton = document.querySelector('.action-button.media-previous'); // NUEVO
         
         if (playPauseButton) {
             playPauseButton.disabled = !userPermissions.play_pause;
         }
+        if (mediaNextButton) { // NUEVO
+            mediaNextButton.disabled = !userPermissions.media_next;
+        }
+        if (mediaPreviousButton) { // NUEVO
+            mediaPreviousButton.disabled = !userPermissions.media_previous;
+        }
         
-        // Volume slider and percentage span
+        // Volume slider, percentage span, and Mute button
         if (volumeSlider) {
             volumeSlider.disabled = !userPermissions.volume;
             // The volume percentage will be updated by the getAndUpdateVolume interval,
             // but for initial display if permissions change, ensure it's set.
-            // If volume is disabled, set to N/A.
             if (!userPermissions.volume) {
                 volumePercentageSpan.textContent = 'N/A';
             }
         }
-
+        if (volumeMuteButton) { // NUEVO
+            volumeMuteButton.disabled = !userPermissions.volume_mute;
+        }
 
         const metricsCard = document.querySelector('.control-card:nth-child(3)');
         if (metricsCard) {
@@ -428,8 +441,12 @@ document.addEventListener('DOMContentLoaded', () => {
             "restart_cmd": "Reboot Command",
             "lock_cmd": "Lock Session Command",
             "play_pause_cmd": "Play/Pause Command",
+            "media_next_cmd": "Media Next Command",       // NUEVO
+            "media_previous_cmd": "Media Previous Command", // NUEVO
             "set_volume_cmd": "Set Volume Command",
             "get_volume_cmd": "Get Volume Command",
+            "volume_mute_cmd": "Volume Mute Command",     // NUEVO
+            "get_mute_status_cmd": "Get Mute Status Command", // NUEVO
             "get_cpu_usage_cmd": "Get CPU Usage Command",
             "get_ram_usage_cmd": "Get RAM Usage Command",
             "get_uptime_cmd": "Get Uptime Command"
@@ -571,11 +588,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Function to fetch and update current system volume ---
+    // --- Function to fetch and update current system volume and mute status ---
     async function getAndUpdateVolume() {
-        // Only attempt to fetch if user has volume permission AND we're on Linux
-        if (!userPermissions.volume || currentOSType !== 'Linux') {
+        // Only attempt to fetch if user has volume or volume_mute permission AND we're on Linux
+        if ((!userPermissions.volume && !userPermissions.volume_mute) || currentOSType !== 'Linux') {
             volumePercentageSpan.textContent = 'N/A';
+            volumeSlider.disabled = true;
+            volumeMuteButton.disabled = true;
             return;
         }
 
@@ -585,16 +604,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 credentials: 'include'
             });
             const data = await response.json();
-            if (data.success && data.level !== undefined) {
-                volumeSlider.value = data.level; // Update slider position
-                volumePercentageSpan.textContent = `${data.level}%`;
+            if (data.success) {
+                // Update volume slider and percentage
+                if (data.level !== undefined) {
+                    volumeSlider.value = data.level; // Update slider position
+                    volumePercentageSpan.textContent = `${data.level}%`;
+                } else {
+                    volumePercentageSpan.textContent = `N/A`;
+                }
+
+                // Update mute button and slider state based on mute status
+                if (data.is_muted !== undefined) {
+                    updateVolumeSliderState(data.is_muted);
+                }
             } else {
-                console.warn('Backend /api/volume did not return a valid level or failed:', data.message || 'Unknown error.');
+                console.warn('Backend /api/volume did not return valid data or failed:', data.message || 'Unknown error.');
                 volumePercentageSpan.textContent = `Error`; // Indicate an error in fetching
+                volumeSlider.disabled = true;
+                volumeMuteButton.disabled = true;
             }
         } catch (error) {
             console.error('Error fetching current volume:', error);
             volumePercentageSpan.textContent = `Error`; // Indicate an error
+            volumeSlider.disabled = true;
+            volumeMuteButton.disabled = true;
+        }
+    }
+
+    // NUEVA FUNCIÓN: Actualizar el estado visual del slider de volumen y del botón de mute
+    function updateVolumeSliderState(isMuted) {
+        if (isMuted) {
+            volumeSlider.disabled = true;
+            volumeMuteButton.classList.add('active-mute'); // Add a class for visual feedback (e.g., darker background)
+            volumeMuteButton.textContent = '🔊 Unmute'; // Change text to 'Unmute'
+        } else {
+            // Only re-enable if the user *has* the volume permission
+            volumeSlider.disabled = !userPermissions.volume;
+            volumeMuteButton.classList.remove('active-mute');
+            volumeMuteButton.textContent = '🔇 Mute'; // Change text to 'Mute'
         }
     }
 
@@ -638,11 +685,14 @@ document.addEventListener('DOMContentLoaded', () => {
             dashboardDataInterval = setInterval(fetchDashboardData, 5000);
 
             if (volumeRefreshTimer) clearInterval(volumeRefreshTimer);
-            if (currentOSType === 'Linux' && userPermissions.volume) {
-                getAndUpdateVolume(); // Initial call for volume
+            // Iniciar la verificación de volumen y mute solo si tiene permisos
+            if (currentOSType === 'Linux' && (userPermissions.volume || userPermissions.volume_mute)) {
+                getAndUpdateVolume(); // Initial call for volume and mute status
                 volumeRefreshTimer = setInterval(getAndUpdateVolume, 5000);
             } else {
                 volumePercentageSpan.textContent = 'N/A'; // Clear volume if not applicable
+                volumeSlider.disabled = true;
+                volumeMuteButton.disabled = true;
             }
 
         } else {
@@ -760,6 +810,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // NUEVO: Media Next Button
+    const mediaNextButton = document.querySelector('.action-button.media-next');
+    if (mediaNextButton) {
+        mediaNextButton.addEventListener('click', async () => {
+            if (userPermissions.media_next) {
+                try {
+                    const response = await fetch('/api/action/media_next', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    const data = await response.json();
+                    showAlert(data.message);
+                } catch (error) {
+                    console.error('Error calling media next API:', error);
+                    showAlert('Network error calling media next API.');
+                }
+            } else {
+                showAlert('You do not have permission to go to the next track.');
+            }
+        });
+    }
+
+    // NUEVO: Media Previous Button
+    const mediaPreviousButton = document.querySelector('.action-button.media-previous');
+    if (mediaPreviousButton) {
+        mediaPreviousButton.addEventListener('click', async () => {
+            if (userPermissions.media_previous) {
+                try {
+                    const response = await fetch('/api/action/media_previous', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    const data = await response.json();
+                    showAlert(data.message);
+                } catch (error) {
+                    console.error('Error calling media previous API:', error);
+                    showAlert('Network error calling media previous API.');
+                }
+            } else {
+                showAlert('You do not have permission to go to the previous track.');
+            }
+        });
+    }
+
     // Volume control event listener with debounce
     if (volumeSlider) {
         volumeSlider.addEventListener('input', () => {
@@ -781,7 +875,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             showAlert(`Failed to set volume: ${data.message}`);
                         }
                         // After setting, immediately request the updated volume to sync UI with system
-                        getAndUpdateVolume(); 
+                        getAndUpdateVolume(); // Call for instant feedback on mute status
                     } catch (error) {
                         console.error('Error setting volume via API:', error);
                         showAlert('Network error setting volume.');
@@ -793,6 +887,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         // Initial percentage will be set by getAndUpdateVolume or N/A
     }
+
+    // NUEVO: Volume Mute Button
+    if (volumeMuteButton) {
+        volumeMuteButton.addEventListener('click', async () => {
+            if (userPermissions.volume_mute) { // Use volume_mute permission
+                try {
+                    const response = await fetch('/api/action/volume_mute', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    const data = await response.json();
+                    showAlert(data.message);
+                    getAndUpdateVolume(); // Call for instant feedback on mute status
+                } catch (error) {
+                    console.error('Error calling volume mute API:', error);
+                    showAlert('Network error calling volume mute API.');
+                }
+            } else {
+                showAlert('You do not have permission to mute volume.');
+            }
+        });
+    }
+
 
     // --- Global ESC key listener for modals ---
     document.addEventListener('keydown', (event) => {
@@ -813,3 +930,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 });
+

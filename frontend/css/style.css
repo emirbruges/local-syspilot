@@ -172,10 +172,36 @@ button:disabled,
     color: var(--rose-pine-text);
 }
 
+/* NUEVOS ESTILOS PARA LA FILA DE BOTONES DE MEDIA */
+.media-buttons-row {
+    display: flex; /* Usar flexbox para alinear en una fila */
+    justify-content: space-between; /* Espaciar uniformemente los botones */
+    gap: 10px; /* Espacio entre los botones */
+    margin-bottom: 15px; /* Margen inferior para separar del control de volumen */
+}
+
+.media-buttons-row .action-button {
+    flex: 1; /* Para que los botones ocupen el mismo espacio disponible */
+    margin-bottom: 0; /* Eliminar el margen inferior individual de los botones */
+}
+
+/* Estilo para el botón de mute cuando está activo (muteado) */
+.action-button.active-mute {
+    background-color: var(--rose-pine-gold); /* Un color que indique estado activo/muteado */
+    color: var(--rose-pine-base);
+    border-color: var(--rose-pine-gold);
+}
+
+.action-button.active-mute:hover:not(:disabled) {
+    background-color: #d8a85f; /* Color más oscuro al pasar el ratón */
+    border-color: #d8a85f;
+}
+
+
 .action-button {
     display: block;
     width: 100%;
-    margin-bottom: 10px;
+    margin-bottom: 10px; /* Ajustado para los botones individuales, pero sobrescrito por media-buttons-row */
     padding: 10px;
     font-size: 1em;
     cursor: pointer;
@@ -203,6 +229,7 @@ button:disabled,
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-bottom: 10px; /* Margen inferior para separar del botón de mute */
 }
 .volume-control input[type="range"] {
     flex-grow: 1;
@@ -505,7 +532,8 @@ button:disabled,
 
 #command-message {
     display: none; /* Hidden by default, JavaScript will show it when needed */
-    margin-top: 15px; /* Separation from save-commands-button */
+    margin-top: 20px; /* Separation from save-commands-button */
+    margin-bottom: 0px; /* Separation from reset-commands-button */
     text-align: center; /* Keep text centered */
 }
 
@@ -567,6 +595,10 @@ button:disabled,
     .action-button {
         font-size: 0.9em;
         padding: 8px;
+    }
+
+    .media-buttons-row { /* NUEVO: para móviles, los botones de media pueden volver a apilarse si es necesario */
+        flex-direction: column;
     }
 
     .volume-control {
