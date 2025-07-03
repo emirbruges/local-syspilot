@@ -17,7 +17,7 @@ if platform.system() == "Linux":
     print("Running on Linux. Using linux_actions.")
     supported_system = True
 else:
-    print("System not supported, please use Linux or Windows.")
+    print("System not supported, please use Linux.")
 
 load_dotenv()
 
@@ -873,4 +873,4 @@ if __name__ == '__main__':
             print("Please make sure to configure the .env or settings.ini file correctly.")
             print("Make sure the following variables are set: SECRET_KEY, DEFAULT_USERNAME, DEFAULT_PASSWORD, DATABASE_FILENAME (optional)")
     else:
-        print("Backend server cannot run: Unsupported operating system. Please use Linux or Windows.")
+        print("Backend server cannot run: Unsupported operating system. Please use Linux.")
