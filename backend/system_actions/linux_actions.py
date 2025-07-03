@@ -8,17 +8,17 @@ import re # Importar para expresiones regulares
 DEFAULT_COMMANDS = {
     "shutdown_cmd": "sudo systemctl poweroff",
     "restart_cmd": "sudo systemctl reboot",
-    "lock_cmd": "gnome-screensaver-command -l || loginctl lock-session",
+    "lock_cmd": "loginctl lock-session 1",
     "play_pause_cmd": "playerctl play-pause",
     "media_next_cmd": "playerctl next",
     "media_previous_cmd": "playerctl previous",
     "set_volume_cmd": "pactl set-sink-volume @DEFAULT_SINK@ {}%",
-"get_volume_cmd": "pactl get-sink-volume @DEFAULT_SINK@ || amixer get Master",
-    "volume_mute_cmd": "pactl set-sink-mute @DEFAULT_SINK@ toggle || amixer -D pulse sset Master toggle",
+"get_volume_cmd": "pactl get-sink-volume @DEFAULT_SINK@",
+    "volume_mute_cmd": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
     "get_cpu_usage_cmd": "grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}'",
     "get_ram_usage_cmd": "free -m | awk 'NR==2{printf \"%.0f\", $3*100/$2 }'",
     "get_uptime_cmd": "uptime -p | sed 's/^up //'",
-    "get_mute_status_cmd": "pactl get-sink-mute @DEFAULT_SINK@ || amixer get Master"
+    "get_mute_status_cmd": "pactl get-sink-mute @DEFAULT_SINK@"
 }
 
 SUCCESS_COMMANDS_MESSAGES = {

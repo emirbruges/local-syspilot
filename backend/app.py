@@ -16,14 +16,10 @@ if platform.system() == "Linux":
     from system_actions import linux_actions as sys_actions
     print("Running on Linux. Using linux_actions.")
     supported_system = True
-elif platform.system() == "Windows":
-    from system_actions import windows_actions as sys_actions
-    print("Running on Windows. Using windows_actions.")
-    supported_system = True
 else:
     print("System not supported, please use Linux or Windows.")
 
-load_dotenv() # Loads .env or settings.ini variables
+load_dotenv()
 
 # --- APP CONFIGURATION ---
 frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../frontend'))
@@ -550,9 +546,6 @@ def update_commands(current_user, current_permissions):
     """
     if not current_permissions.get('modify_commands', False):
         return jsonify({'success': False, 'message': 'Permission denied'}), 403
-
-    if not supported_system or platform.system() != "Linux":
-        return jsonify({'success': False, 'message': 'Custom command management is only available on Linux.'}), 400
 
     data = request.get_json()
     new_commands = data.get('commands', {})

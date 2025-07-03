@@ -13,21 +13,19 @@ With a clean web interface and secure login, it allows you to perform basic syst
 - 🔐 Secure login system (web-based UI)
 - 🔌 Power controls: shutdown, lock, suspend (platform-dependent)
 - 🎛️ Multimedia control: play/pause, volume, etc.
-- 💻 Cross-platform: works on both **Linux** and **Windows**
 - 🧩 Modular backend (easy to extend with custom commands)
 - 🌐 Accessible from any device within the same LAN or VPN
-- 📊 *(Optional)* System metrics support (CPU/RAM, uptime) – *may or may not be implemented*
+- 📊 System metrics support (CPU/RAM, uptime)
 
 ---
 
 ## 🧩 Roadmap
 
 * [x] Local system control via web (shutdown, lock)
-* [ ] Cross-platform backend (Python for Linux, C++ for Windows)
 * [x] Secure login/token-based authentication
 * [x] Basic control panel
 * [x] Optional system metrics module
-* [ ] Systemd/Windows Service installation helpers
+* [x] Systemd Service installation helper
 
 ---
 
