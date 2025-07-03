@@ -67,6 +67,6 @@ Feel free to fork this project, suggest improvements, or open pull requests. Fee
 
 ## 📬 Contact
 
-Made with 🐧 and 🪟 by Emir Bruges
+Made with 🐧 by Emir Bruges
 GitHub: [emirbruges](https://github.com/emirbruges)
 
